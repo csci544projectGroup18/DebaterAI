@@ -258,7 +258,7 @@ if __name__ == '__main__':
     NUM_CLASSES = 3     
 
     TRAINING_EPOCHS = 10
-    BACTH_SIZE = 64
+    BACTH_SIZE = 32
     LEARNING_RATE = 1e-5  
         
     SeqEncoder1 = SequenceEncoderBlock(
