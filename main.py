@@ -325,6 +325,7 @@ if __name__ == '__main__':
         save_steps=5000,
         evaluation_strategy="steps",
         save_strategy="steps",
+        metric_for_best_model = 'accuracy',
         num_train_epochs=TRAINING_EPOCHS,
         per_device_train_batch_size=BACTH_SIZE,
         per_device_eval_batch_size=BACTH_SIZE,
