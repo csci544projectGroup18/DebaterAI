@@ -21,6 +21,12 @@ test_dataset = DebaterDataset('data/labeled_data.csv', is_test = True)
 
 ### Training
 
-`BATCHSIZE=32`
+The model can be trained from Jupyter notebook or python script
 
-run `python main.py`
+`BATCHSIZE = 32`
+
+1. python script: run `python main.py`
+
+2. Jupyter notebook:
+
+run `colab/StannceCls.ipynb`
