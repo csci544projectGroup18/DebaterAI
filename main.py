@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import torch
 import torch.nn as nn
+from copy import deepcopy
 
 from transformers import GPT2Model, GPT2Tokenizer
 from transformers import MAMConfig
@@ -10,7 +11,7 @@ from transformers.modeling_outputs import SequenceClassifierOutput
 from torch.utils.data.dataset import Dataset
 
 
-from transformers import Trainer, TrainingArguments, EvalPrediction
+from transformers import Trainer, TrainingArguments, EvalPrediction, TrainerCallback
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import LambdaLR
 
@@ -191,7 +192,7 @@ class StanceClassifier(nn.Module):
         )
         #   Dimension: 3 * (B, S)
 
-        #   Create the combined sequence embedding for classification
+        #   Create the combined sStanceClassifierloequence embedding for classification
         combined_embeddings = torch.cat(
             (parent_embeddings + context_embeddings, child_embeddings + context_embeddings),
             dim=-1
@@ -228,7 +229,18 @@ class CustomTrainer(Trainer):
 
         return (loss, logits) if return_outputs else loss
     
-
+class CustomCallback(TrainerCallback):
+    
+    def __init__(self, trainer) -> None:
+        super().__init__()
+        self._trainer = trainer
+    
+    def on_epoch_end(self, args, state, control, **kwargs):
+        if control.should_evaluate:
+            control_copy = deepcopy(control)
+            self._trainer.evaluate(eval_dataset=self._trainer.train_dataset, metric_key_prefix="train")
+            return control_copy
+        
 if __name__ == '__main__':
     # Config Env
     PROJECT_ROOT_DIR = os.getcwd()
@@ -257,7 +269,7 @@ if __name__ == '__main__':
     FF_HIDDEN_SIZE = 4 * SEQUENCE_EMEBDDING_SIZE
     NUM_CLASSES = 3     
 
-    TRAINING_EPOCHS = 10
+    TRAINING_EPOCHS = 100
     BACTH_SIZE = 32
     LEARNING_RATE = 1e-5  
         
@@ -309,6 +321,10 @@ if __name__ == '__main__':
     training_args = TrainingArguments(
         output_dir=RESULTS_DIR,
         logging_dir=LOG_DIR,
+        logging_steps=5000,
+        save_steps=5000,
+        evaluation_strategy="steps",
+        save_strategy="steps",
         num_train_epochs=TRAINING_EPOCHS,
         per_device_train_batch_size=BACTH_SIZE,
         per_device_eval_batch_size=BACTH_SIZE,
@@ -324,5 +340,6 @@ if __name__ == '__main__':
         optimizers=(optimizer, lr_scheduler),
         compute_metrics=custom_compute_metrics
     )
+    # trainer.add_callback(CustomCallback(trainer)) 
 
     trainer.train()

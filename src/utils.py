@@ -78,19 +78,21 @@ def custom_compute_metrics(eval_pred: EvalPrediction) -> dict:
 
     #   Convert logits to predictions
     preds = np.argmax(eval_pred.predictions, axis=1)
+
+    min_len = min(len(eval_pred.label_ids), len(preds))
     #   Dimension: (B,)
 
     #   Compute precision, recall, and F1 score
     precision, recall, f1, _ = precision_recall_fscore_support(
-        eval_pred.label_ids, preds, average="weighted"
+        eval_pred.label_ids[:min_len], preds[:min_len], average="weighted"
     )
 
     #   Compute confusion matrix
-    cm = confusion_matrix(eval_pred.label_ids, preds)
+    cm = confusion_matrix(eval_pred.label_ids[:min_len], preds[:min_len])
 
     return {
         "precision": precision,
         "recall": recall,
         "f1": f1,
-        "accuracy": cm.diagonal() / cm.sum()
+        "accuracy": (cm.diagonal() / cm.sum()).tolist()
     }

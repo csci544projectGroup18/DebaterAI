@@ -12,16 +12,17 @@ class DebaterDataset(Dataset):
         self.submission_text_list = data.loc[:, 'submission_text'].tolist()
 
         L = len(self.label_list)
+        p = 1.0
         if not is_test:
-            self.label_list = self.label_list[:int(L * 0.8)]
-            self.body_parent_list = self.body_parent_list[:int(L * 0.8)]
-            self.body_child_list = self.body_child_list[:int(L * 0.8)]
-            self.submission_text_list = self.submission_text_list[:int(L * 0.8)]
+            self.label_list = self.label_list[:int(L * 0.8 * p)]
+            self.body_parent_list = self.body_parent_list[:int(L * 0.8 * p)]
+            self.body_child_list = self.body_child_list[:int(L * 0.8 * p)]
+            self.submission_text_list = self.submission_text_list[:int(L * 0.8 * p)]
         else:
-            self.label_list = self.label_list[int(L * 0.8):]
-            self.body_parent_list = self.body_parent_list[int(L * 0.8):]
-            self.body_child_list = self.body_child_list[int(L * 0.8):]
-            self.submission_text_list = self.submission_text_list[int(L * 0.8):]
+            self.label_list = self.label_list[-int(L * 0.2 * p):]
+            self.body_parent_list = self.body_parent_list[-int(L * 0.2 * p):]
+            self.body_child_list = self.body_child_list[-int(L * 0.2 * p):]
+            self.submission_text_list = self.submission_text_list[-int(L * 0.2 * p):]
 
     def __len__(self):
         return self.label_list.__len__()
