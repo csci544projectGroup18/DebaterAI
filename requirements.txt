@@ -40,7 +40,6 @@ psutil==5.9.0
 pure-eval==0.2.2
 Pygments==2.14.0
 python-dateutil==2.8.2
-pywin32==305.1
 PyYAML==6.0
 pyzmq==23.2.0
 regex==2022.10.31
@@ -55,9 +54,6 @@ stack-data==0.6.2
 sympy==1.11.1
 threadpoolctl==3.1.0
 tokenizers==0.13.2
-torch==2.0.0+cu117
-torchaudio==2.0.1+cu117
-torchvision==0.15.1+cu117
 tornado==6.2
 tqdm==4.65.0
 traitlets==5.9.0
