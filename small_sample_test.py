@@ -244,7 +244,7 @@ class CustomTrainer(Trainer):
         logits = outputs.logits
         loss = outputs.loss
 
-        return (loss, logits) if return_outputs else loss
+        return (loss, {"logits": logits}) if return_outputs else loss
     
 class CustomCallback(TrainerCallback):
     
@@ -361,7 +361,7 @@ if __name__ == '__main__':
         data_collator=MyCollator,
         optimizers=(optimizer, lr_scheduler),
         compute_metrics=custom_compute_metrics,
-        preprocess_logits_for_metrics=custom_logits_preprocessing
+        # preprocess_logits_for_metrics=custom_logits_preprocessing
     )
     # trainer.add_callback(CustomCallback(trainer)) 
 

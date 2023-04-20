@@ -227,7 +227,7 @@ class CustomTrainer(Trainer):
         logits = outputs.logits
         loss = outputs.loss
 
-        return (loss, logits) if return_outputs else loss
+        return (loss, {"logits": logits}) if return_outputs else loss
     
 class CustomCallback(TrainerCallback):
     

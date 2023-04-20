@@ -74,13 +74,6 @@ def custom_compute_metrics(eval_pred: EvalPrediction) -> dict:
     #   B: batch size
     #   C: number of classes
 
-    #   Dimension of prediction logits: (B, C)
-    print("\n")
-    print(eval_pred.label_ids)
-    print("\n")
-    print(eval_pred.predictions)
-    print("\n")
-
     #   Convert logits to predictions
     preds = np.argmax(eval_pred.predictions, axis=1)
 
@@ -88,12 +81,16 @@ def custom_compute_metrics(eval_pred: EvalPrediction) -> dict:
     #   Dimension: (B,)
 
     #   Compute precision, recall, and F1 score
+    # precision, recall, f1, _ = precision_recall_fscore_support(
+    #     eval_pred.label_ids[:min_len], preds[:min_len], average="weighted"
+    # )
     precision, recall, f1, _ = precision_recall_fscore_support(
-        eval_pred.label_ids[:min_len], preds[:min_len], average="weighted"
+        eval_pred.label_ids, preds, average="weighted"
     )
 
     #   Compute confusion matrix
-    cm = confusion_matrix(eval_pred.label_ids[:min_len], preds[:min_len])
+    # cm = confusion_matrix(eval_pred.label_ids[:min_len], preds[:min_len])
+    cm = confusion_matrix(eval_pred.label_ids, preds)
 
     return {
         "precision": precision,
@@ -114,5 +111,7 @@ def custom_logits_preprocessing(logits: torch.Tensor, labels: torch.Tensor):
     print("\nInside custom_logits_preprocessing")
     print("Shape of logits: {}".format(logits.shape))
     print("Actual logits: {}".format(logits))
+    print("Shape of labels: {}".format(labels.shape))
+    print("Actual labels: {}".format(labels))
     print("Out of custom_logits_preprocessing\n")
     return logits
