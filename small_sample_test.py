@@ -244,7 +244,7 @@ class CustomTrainer(Trainer):
         logits = outputs.logits
         loss = outputs.loss
 
-        return (loss, {"logits": logits}) if return_outputs else loss
+        return (loss, outputs) if return_outputs else loss
     
 class CustomCallback(TrainerCallback):
     
@@ -353,11 +353,11 @@ if __name__ == '__main__':
         remove_unused_columns=False
     )
 
-    trainer = CustomTrainer(
+    trainer = Trainer(
         model=CLSModel,
         args=training_args,
-        train_dataset=train_dataset,     #   Change this to the training dataset
-        eval_dataset=eval_dataset,      #   Change this to the evaluation dataset
+        train_dataset=train_dataset,        #   Change this to the training dataset
+        eval_dataset=eval_dataset,          #   Change this to the evaluation dataset
         data_collator=MyCollator,
         optimizers=(optimizer, lr_scheduler),
         compute_metrics=custom_compute_metrics,

@@ -208,26 +208,6 @@ class StanceClassifier(nn.Module):
 
         return SequenceClassifierOutput(loss=loss, logits=logits)
     
-
-class CustomTrainer(Trainer):
-    def compute_loss(self, model: nn.Module, inputs: dict, return_outputs=False):
-        #   Dimension notations:
-        #   B: batch size
-        #   L: sequence length
-        #   C: number of classes
-
-        input_ids = inputs["input_ids"]
-        #   Dimension: 3 * (B, L)
-        attention_masks = inputs["attention_masks"]
-        #   Dimension: 3 * (B, L)
-        labels = inputs["labels"]
-        #   Dimension: (B,)
-
-        outputs = model(input_ids, attention_masks, labels=labels)
-        logits = outputs.logits
-        loss = outputs.loss
-
-        return (loss, {"logits": logits}) if return_outputs else loss
     
 class CustomCallback(TrainerCallback):
     
@@ -332,7 +312,7 @@ if __name__ == '__main__':
         remove_unused_columns=False
     )
 
-    trainer = CustomTrainer(
+    trainer = Trainer(
         model=CLSModel,
         args=training_args,
         train_dataset=train_dataset,     #   Change this to the training dataset

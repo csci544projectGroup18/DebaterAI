@@ -100,7 +100,7 @@ def custom_compute_metrics(eval_pred: EvalPrediction) -> dict:
         "accuracy": cm.diagonal().sum() / cm.sum()
     }
 
-
+#   For debug use only, not used in the actual training.
 def custom_logits_preprocessing(logits: torch.Tensor, labels: torch.Tensor):
     '''Preprocess logits before computing loss
 
