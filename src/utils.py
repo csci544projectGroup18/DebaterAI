@@ -75,6 +75,11 @@ def custom_compute_metrics(eval_pred: EvalPrediction) -> dict:
     #   C: number of classes
 
     #   Dimension of prediction logits: (B, C)
+    print("\n")
+    print(eval_pred.label_ids)
+    print("\n")
+    print(eval_pred.predictions)
+    print("\n")
 
     #   Convert logits to predictions
     preds = np.argmax(eval_pred.predictions, axis=1)
@@ -97,3 +102,17 @@ def custom_compute_metrics(eval_pred: EvalPrediction) -> dict:
         "sub_accuracy": (cm.diagonal() / cm.sum()).tolist(),
         "accuracy": cm.diagonal().sum() / cm.sum()
     }
+
+
+def custom_logits_preprocessing(logits: torch.Tensor, labels: torch.Tensor):
+    '''Preprocess logits before computing loss
+
+    params:
+        logits: logits from the model
+        labels: labels for the batch
+    '''
+    print("\nInside custom_logits_preprocessing")
+    print("Shape of logits: {}".format(logits.shape))
+    print("Actual logits: {}".format(logits))
+    print("Out of custom_logits_preprocessing\n")
+    return logits

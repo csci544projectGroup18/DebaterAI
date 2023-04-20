@@ -23,9 +23,9 @@ sentences = [
     "The early bird catches the worm."
 ]
 
-def get_sample():
+def get_sample(size=80):
     result = []
-    for _ in range(80):
+    for _ in range(size):
         sentence1 = random.choice(sentences)
         sentence2 = random.choice(sentences)
         sentence3 = "I'm acting as a context for them"
