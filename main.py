@@ -16,6 +16,8 @@ from torch.optim import AdamW
 from torch.optim.lr_scheduler import LambdaLR
 
 import numpy as np
+import json
+from datetime import datetime
 
 from src.datasets.DebaterDataset import DebaterDataset
 from src.utils import CustomDataCollator, custom_compute_metrics
@@ -323,4 +325,12 @@ if __name__ == '__main__':
     )
     # trainer.add_callback(CustomCallback(trainer)) 
 
-    trainer.train()
+    train_result = trainer.train()
+
+    log_history = trainer.state.log_history
+    time_format = time_format = "%Y-%m-%dT%H_%M_%S"
+    with open(os.path.join(LOG_DIR, f"train_history_{datetime.utcnow().strftime(time_format)}.txt"), 'w') as train_h_output:
+        train_h_output.write(json.dumps(log_history, indent=4))
+    with open(os.path.join(LOG_DIR, f"train_result_{datetime.utcnow().strftime(time_format)}.txt"), 'w') as train_output:
+        train_output.write(json.dumps(train_result, indent=4))
+
