@@ -96,7 +96,7 @@ def custom_compute_metrics(eval_pred: EvalPrediction) -> dict:
         "precision": precision,
         "recall": recall,
         "f1": f1,
-        "sub_accuracy": (cm.diagonal() / cm.sum()).tolist(),
+        "sub_accuracy": (cm.diagonal() / cm.sum(axis=1)).tolist(),
         "accuracy": cm.diagonal().sum() / cm.sum()
     }
 

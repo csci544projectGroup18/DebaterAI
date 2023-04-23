@@ -251,7 +251,7 @@ if __name__ == '__main__':
 
     TRAINING_EPOCHS = 100
     BACTH_SIZE = 32
-    LEARNING_RATE = 1e-5  
+    LEARNING_RATE = 1e-2
         
     SeqEncoder1 = SequenceEncoderBlock(
         max_sequence_length=MAX_SEQUENCE_LENGTH,
@@ -287,10 +287,15 @@ if __name__ == '__main__':
         num_classes=NUM_CLASSES
     )
 
+    ckpt = torch.load('/lab/xingrui/DebaterAI/results/checkpoint-50000/pytorch_model.bin', map_location='cuda')
+    print("Load from pretrain")
+    CLSModel.load_state_dict(ckpt)
+
+
     #   Optimizer and LR scheduler may need to be changed based on actual performance
     #   This is the default setting from the Trainer implementation
     optimizer = AdamW(CLSModel.parameters(), lr=LEARNING_RATE)
-    lr_scheduler = LambdaLR(optimizer, lambda epoch: 1 / (epoch + 1))
+    lr_scheduler = LambdaLR(optimizer, lambda epoch: 1 / (epoch / 1000  + 1))
 
     # add dataset
     train_dataset = DebaterDataset('/lab/xingrui/DebaterAI/data/labeled_data.csv', is_test=False)
@@ -301,7 +306,7 @@ if __name__ == '__main__':
     training_args = TrainingArguments(
         output_dir=RESULTS_DIR,
         logging_dir=LOG_DIR,
-        logging_steps=5000,
+        logging_steps=1000,
         save_steps=5000,
         evaluation_strategy="steps",
         save_strategy="steps",
@@ -311,6 +316,7 @@ if __name__ == '__main__':
         per_device_eval_batch_size=BACTH_SIZE,
         remove_unused_columns=False
     )
+    # training_args.set_logging(strategy="steps", steps=100))
 
     trainer = Trainer(
         model=CLSModel,
@@ -324,3 +330,7 @@ if __name__ == '__main__':
     # trainer.add_callback(CustomCallback(trainer)) 
 
     trainer.train()
+
+
+    eval_results = trainer.evaluate()
+    print(eval_results)
