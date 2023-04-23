@@ -25,7 +25,7 @@ from src.utils import CustomDataCollator, custom_compute_metrics
 class SequenceEncoderBlock(nn.Module):
     '''Sequence encoder block
 
-    params: 
+    params:
         max_sequence_length: Maximum sequence length
         adapter_name: Adapter used for fine-tuning pre-trained encoder
         adapter_config: Adapter config
@@ -33,7 +33,7 @@ class SequenceEncoderBlock(nn.Module):
         cnn_window_size: Window size of the CNN
     '''
     def __init__(
-            self, 
+            self,
             max_sequence_length,
             adapter_name,
             adapter_config,
@@ -107,13 +107,13 @@ class SequenceEncoderBlock(nn.Module):
         #   Dimension: (B, L, H * 2)
 
         #   Apply attention mask to the concatenated sequence representation
-        #   The attetion mask is expanded to dimension (B, L, H * 2), 
+        #   The attetion mask is expanded to dimension (B, L, H * 2),
         #   matching the dimension of the concatenated sequence representation.
         #   The concatenated sequence representation is multiplied element-wise with the attention mask
         #   to zero out the padded positions.
         masked_concat_embeddings = concat_embeddings * \
             attention_mask.unsqueeze(-1).expand(concat_embeddings.shape)
-        
+
         #   Apply CNN layer
         cnn_out = self.cnn(masked_concat_embeddings.permute(0, 2, 1))
         #   Dimension: (B, C, L)
@@ -128,7 +128,7 @@ class SequenceEncoderBlock(nn.Module):
         #   Dimension: (B, C)
 
         return sequence_embedding
-    
+
 class StanceClassifier(nn.Module):
     '''Stance classifier
 
@@ -141,7 +141,7 @@ class StanceClassifier(nn.Module):
         num_classes: Number of classes
     '''
     def __init__(
-            self, 
+            self,
             # parent_encoder: SequenceEncoderBlock,
             # child_encoder: SequenceEncoderBlock,
             # context_encoder: SequenceEncoderBlock,
@@ -222,20 +222,20 @@ class StanceClassifier(nn.Module):
             loss = self.loss_fn(logits, labels)
 
         return SequenceClassifierOutput(loss=loss, logits=logits)
-    
-    
+
+
 class CustomCallback(TrainerCallback):
-    
+
     def __init__(self, trainer) -> None:
         super().__init__()
         self._trainer = trainer
-    
+
     def on_epoch_end(self, args, state, control, **kwargs):
         if control.should_evaluate:
             control_copy = deepcopy(control)
             self._trainer.evaluate(eval_dataset=self._trainer.train_dataset, metric_key_prefix="train")
             return control_copy
-        
+
 if __name__ == '__main__':
     # Config Env
     PROJECT_ROOT_DIR = os.getcwd()
@@ -262,12 +262,12 @@ if __name__ == '__main__':
     tokenizer = GPT2Tokenizer.from_pretrained("gpt2", padding_side="right")
     tokenizer.pad_token = tokenizer.eos_token
     FF_HIDDEN_SIZE = 4 * SEQUENCE_EMEBDDING_SIZE
-    NUM_CLASSES = 3     
+    NUM_CLASSES = 3
 
     TRAINING_EPOCHS = 100
     BACTH_SIZE = 32
-    LEARNING_RATE = 1e-5  
-        
+    LEARNING_RATE = 1e-2
+
     # SeqEncoder1 = SequenceEncoderBlock(
     #     max_sequence_length=MAX_SEQUENCE_LENGTH,
     #     adapter_name=ADAPTER_NAME,
@@ -351,7 +351,7 @@ if __name__ == '__main__':
         optimizers=(optimizer, lr_scheduler),
         compute_metrics=custom_compute_metrics
     )
-    # trainer.add_callback(CustomCallback(trainer)) 
+    # trainer.add_callback(CustomCallback(trainer))
 
     train_result = trainer.train()
 
