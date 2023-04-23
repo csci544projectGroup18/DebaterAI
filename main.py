@@ -266,7 +266,7 @@ if __name__ == '__main__':
 
     TRAINING_EPOCHS = 100
     BACTH_SIZE = 32
-    LEARNING_RATE = 1e-5
+    LEARNING_RATE = 1e-4
         
     # SeqEncoder1 = SequenceEncoderBlock(
     #     max_sequence_length=MAX_SEQUENCE_LENGTH,
@@ -333,7 +333,7 @@ if __name__ == '__main__':
     training_args = TrainingArguments(
         output_dir=RESULTS_DIR,
         logging_dir=LOG_DIR,
-        logging_steps=1000,
+        logging_steps=500,
         save_steps=5000,
         evaluation_strategy="steps",
         save_strategy="steps",
