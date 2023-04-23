@@ -142,9 +142,10 @@ class StanceClassifier(nn.Module):
     '''
     def __init__(
             self, 
-            parent_encoder: SequenceEncoderBlock,
-            child_encoder: SequenceEncoderBlock,
-            context_encoder: SequenceEncoderBlock,
+            # parent_encoder: SequenceEncoderBlock,
+            # child_encoder: SequenceEncoderBlock,
+            # context_encoder: SequenceEncoderBlock,
+            sequence_encoder: SequenceEncoderBlock,
             loss_fn,
             sequence_embedding_size,
             ff_hidden_size,
@@ -152,10 +153,10 @@ class StanceClassifier(nn.Module):
         ):
         super(StanceClassifier, self).__init__()
 
-        self.parent_encoder = parent_encoder
-        self.child_encoder = child_encoder
-        self.context_encoder = context_encoder
-
+        # self.parent_encoder = parent_encoder
+        # self.child_encoder = child_encoder
+        # self.context_encoder = context_encoder
+        self.sequence_encoder = sequence_encoder
         self.loss_fn = loss_fn
 
         #   Feed-forward layer
@@ -180,15 +181,27 @@ class StanceClassifier(nn.Module):
         #   S: dimension of the sequence embedding
         #   C: number of classes
 
-        parent_embeddings = self.parent_encoder(
+        # parent_embeddings = self.parent_encoder(
+        #     input_ids=input_ids[0],
+        #     attention_mask=attention_masks[0]
+        # )
+        # child_embeddings = self.child_encoder(
+        #     input_ids=input_ids[1],
+        #     attention_mask=attention_masks[1]
+        # )
+        # context_embeddings = self.context_encoder(
+        #     input_ids=input_ids[2],
+        #     attention_mask=attention_masks[2]
+        # )
+        parent_embeddings = self.sequence_encoder(
             input_ids=input_ids[0],
             attention_mask=attention_masks[0]
         )
-        child_embeddings = self.child_encoder(
+        child_embeddings = self.sequence_encoder(
             input_ids=input_ids[1],
             attention_mask=attention_masks[1]
         )
-        context_embeddings = self.context_encoder(
+        context_embeddings = self.sequence_encoder(
             input_ids=input_ids[2],
             attention_mask=attention_masks[2]
         )
@@ -255,7 +268,31 @@ if __name__ == '__main__':
     BACTH_SIZE = 32
     LEARNING_RATE = 1e-5  
         
-    SeqEncoder1 = SequenceEncoderBlock(
+    # SeqEncoder1 = SequenceEncoderBlock(
+    #     max_sequence_length=MAX_SEQUENCE_LENGTH,
+    #     adapter_name=ADAPTER_NAME,
+    #     adapter_config=ADAPTER_CONFIG,
+    #     cnn_output_channels=SEQUENCE_EMEBDDING_SIZE,
+    #     cnn_window_size=CNN_WINDOW_SIZE
+    # )
+
+    # SeqEncoder2 = SequenceEncoderBlock(
+    #     max_sequence_length=MAX_SEQUENCE_LENGTH,
+    #     adapter_name=ADAPTER_NAME,
+    #     adapter_config=ADAPTER_CONFIG,
+    #     cnn_output_channels=SEQUENCE_EMEBDDING_SIZE,
+    #     cnn_window_size=CNN_WINDOW_SIZE
+    # )
+
+    # SeqEncoder3 = SequenceEncoderBlock(
+    #     max_sequence_length=MAX_SEQUENCE_LENGTH,
+    #     adapter_name=ADAPTER_NAME,
+    #     adapter_config=ADAPTER_CONFIG,
+    #     cnn_output_channels=SEQUENCE_EMEBDDING_SIZE,
+    #     cnn_window_size=CNN_WINDOW_SIZE
+    # )
+
+    SeqEncoder = SequenceEncoderBlock(
         max_sequence_length=MAX_SEQUENCE_LENGTH,
         adapter_name=ADAPTER_NAME,
         adapter_config=ADAPTER_CONFIG,
@@ -263,32 +300,23 @@ if __name__ == '__main__':
         cnn_window_size=CNN_WINDOW_SIZE
     )
 
-    SeqEncoder2 = SequenceEncoderBlock(
-        max_sequence_length=MAX_SEQUENCE_LENGTH,
-        adapter_name=ADAPTER_NAME,
-        adapter_config=ADAPTER_CONFIG,
-        cnn_output_channels=SEQUENCE_EMEBDDING_SIZE,
-        cnn_window_size=CNN_WINDOW_SIZE
-    )
-
-    SeqEncoder3 = SequenceEncoderBlock(
-        max_sequence_length=MAX_SEQUENCE_LENGTH,
-        adapter_name=ADAPTER_NAME,
-        adapter_config=ADAPTER_CONFIG,
-        cnn_output_channels=SEQUENCE_EMEBDDING_SIZE,
-        cnn_window_size=CNN_WINDOW_SIZE
-    )
+    # CLSModel = StanceClassifier(
+    #     parent_encoder=SeqEncoder1,
+    #     child_encoder=SeqEncoder2,
+    #     context_encoder=SeqEncoder3,
+    #     loss_fn=nn.CrossEntropyLoss(),
+    #     sequence_embedding_size=SEQUENCE_EMEBDDING_SIZE,
+    #     ff_hidden_size=FF_HIDDEN_SIZE,
+    #     num_classes=NUM_CLASSES
+    # )
 
     CLSModel = StanceClassifier(
-        parent_encoder=SeqEncoder1,
-        child_encoder=SeqEncoder2,
-        context_encoder=SeqEncoder3,
+        sequence_encoder=SeqEncoder,
         loss_fn=nn.CrossEntropyLoss(),
         sequence_embedding_size=SEQUENCE_EMEBDDING_SIZE,
         ff_hidden_size=FF_HIDDEN_SIZE,
         num_classes=NUM_CLASSES
     )
-
     #   Optimizer and LR scheduler may need to be changed based on actual performance
     #   This is the default setting from the Trainer implementation
     optimizer = AdamW(CLSModel.parameters(), lr=LEARNING_RATE)
