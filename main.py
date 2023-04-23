@@ -240,6 +240,7 @@ if __name__ == '__main__':
     # Config Env
     PROJECT_ROOT_DIR = os.getcwd()
     PRETRAINED_MODEL_DIR = os.path.join(PROJECT_ROOT_DIR, "models", "pretrained")
+    DATASET_FILE = '/lab/xingrui/DebaterAI/data/labeled_data.csv'
     #assert os.path.isdir(PRETRAINED_MODEL_DIR)
 
     #   Path to the directory where the pre-trained model will be saved.
@@ -323,8 +324,8 @@ if __name__ == '__main__':
     lr_scheduler = LambdaLR(optimizer, lambda epoch: 1 / (epoch + 1))
 
     # add dataset
-    train_dataset = DebaterDataset('/lab/xingrui/DebaterAI/data/labeled_data.csv', is_test=False)
-    eval_dataset = DebaterDataset('/lab/xingrui/DebaterAI/data/labeled_data.csv', is_test=True)
+    train_dataset = DebaterDataset(DATASET_FILE, is_test=False)
+    eval_dataset = DebaterDataset(DATASET_FILE, is_test=True)
 
     MyCollator = CustomDataCollator(tokenizer, MAX_SEQUENCE_LENGTH)
 
