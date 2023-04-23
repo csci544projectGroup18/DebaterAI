@@ -266,7 +266,7 @@ if __name__ == '__main__':
 
     TRAINING_EPOCHS = 100
     BACTH_SIZE = 32
-    LEARNING_RATE = 1e-2
+    LEARNING_RATE = 1e-5
         
     # SeqEncoder1 = SequenceEncoderBlock(
     #     max_sequence_length=MAX_SEQUENCE_LENGTH,
