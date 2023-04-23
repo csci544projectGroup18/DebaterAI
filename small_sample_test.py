@@ -20,6 +20,9 @@ import numpy as np
 from src.datasets.DebaterDataset import DebaterDataset
 from src.utils import CustomDataCollator, custom_compute_metrics, custom_logits_preprocessing
 
+import json
+from datetime import datetime
+
 from RandSampleGen import get_sample
 
 class SampleDataset(Dataset):
@@ -286,7 +289,7 @@ if __name__ == '__main__':
     FF_HIDDEN_SIZE = 4 * SEQUENCE_EMEBDDING_SIZE
     NUM_CLASSES = 3     
 
-    TRAINING_EPOCHS = 5
+    TRAINING_EPOCHS = 1
     BACTH_SIZE = 2
     LEARNING_RATE = 1e-5  
         
@@ -365,4 +368,16 @@ if __name__ == '__main__':
     )
     # trainer.add_callback(CustomCallback(trainer)) 
 
-    trainer.train()
+    train_result = trainer.train()
+    eval_result = trainer.evaluate()
+
+    torch.save(CLSModel.state_dict(), os.path.join(RESULTS_DIR, "sample_model.pt"))
+
+    log_history = trainer.state.log_history
+    time_format = "%Y-%m-%dT%H_%M_%S"
+    with open(os.path.join(LOG_DIR, f"train_history_{datetime.utcnow().strftime(time_format)}.txt"), 'w') as train_h_output:
+        train_h_output.write(json.dumps(log_history, indent=4))
+    with open(os.path.join(LOG_DIR, f"train_result_{datetime.utcnow().strftime(time_format)}.txt"), 'w') as train_output:
+        train_output.write(json.dumps(train_result, indent=4))
+    with open(os.path.join(LOG_DIR, f"eval_result_{datetime.utcnow().strftime(time_format)}.txt"), 'w') as eval_output:
+        eval_output.write(json.dumps(eval_result, indent=4))
