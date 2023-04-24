@@ -15,6 +15,7 @@ from transformers import Trainer, TrainingArguments, EvalPrediction, TrainerCall
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import LambdaLR
 
+from src.models.attention import MultiheadAttention
 import numpy as np
 import json
 from datetime import datetime
@@ -128,7 +129,9 @@ class SequenceEncoderBlock(nn.Module):
         #   Dimension: (B, C)
 
         return sequence_embedding
-    
+
+
+        
 class StanceClassifier(nn.Module):
     '''Stance classifier
 
@@ -149,7 +152,8 @@ class StanceClassifier(nn.Module):
             loss_fn,
             sequence_embedding_size,
             ff_hidden_size,
-            num_classes
+            num_classes,
+            token_split = 8
         ):
         super(StanceClassifier, self).__init__()
 
@@ -158,15 +162,25 @@ class StanceClassifier(nn.Module):
         # self.context_encoder = context_encoder
         self.sequence_encoder = sequence_encoder
         self.loss_fn = loss_fn
+        self.token_split = token_split
 
         #   Feed-forward layer
-        self.ff = nn.Sequential(
-            nn.Linear(sequence_embedding_size * 2, ff_hidden_size),
-            nn.ReLU(),
+        self.self_attention = MultiheadAttention(sequence_embedding_size * 2 // token_split , ff_hidden_size // token_split, num_heads = 4)
+        
+        self.out = nn.Sequential(
             nn.Linear(ff_hidden_size, sequence_embedding_size),
             nn.ReLU(),
+            nn.Linear(sequence_embedding_size, sequence_embedding_size),
+            nn.ReLU(),
             nn.Linear(sequence_embedding_size, num_classes)
-        )
+        ) 
+        # self.ff = nn.Sequential(
+        #     nn.Linear(sequence_embedding_size * 2, ff_hidden_size),
+        #     nn.ReLU(),
+        #     nn.Linear(ff_hidden_size, sequence_embedding_size),
+        #     nn.ReLU(),
+        #     nn.Linear(sequence_embedding_size, num_classes)
+        # )
 
     def forward(self, input_ids, attention_masks, labels=None):
         '''Forward propagation
@@ -176,6 +190,7 @@ class StanceClassifier(nn.Module):
             attention_masks: list tensors of shape (B, L) containing the attention masks
             labels: Tensor of shape (B,) containing the labels
         '''
+    
         #   Dimension notations:
         #   B: batch size
         #   S: dimension of the sequence embedding
@@ -215,7 +230,13 @@ class StanceClassifier(nn.Module):
         #   Dimension: (B, S * 2)
 
         #   Feed-forward layer
-        logits = self.ff(combined_embeddings)
+        # logits = self.ff(combined_embeddings)
+        batch_size, seq_length = combined_embeddings.size()
+        logits = combined_embeddings.reshape(batch_size, self.token_split, seq_length // self.token_split)
+        logits = self.self_attention(logits)
+        logits = self.out(logits.view(batch_size, -1))
+
+
         loss = None
 
         if labels is not None:
@@ -266,7 +287,8 @@ if __name__ == '__main__':
 
     TRAINING_EPOCHS = 100
     BACTH_SIZE = 32
-    LEARNING_RATE = 1e-4
+    LEARNING_RATE = 1e-5
+    
         
     # SeqEncoder1 = SequenceEncoderBlock(
     #     max_sequence_length=MAX_SEQUENCE_LENGTH,
