@@ -34,28 +34,16 @@ class SequenceEncoderBlock(nn.Module):
     '''
     def __init__(
             self,
+            gpt2_hidden_size,
             max_sequence_length,
-            adapter_name,
-            adapter_config,
             cnn_output_channels,
             cnn_window_size
         ):
         super(SequenceEncoderBlock, self).__init__()
 
-        #   Pre-trained GPT-2 model
-        self.gpt2 = GPT2Model.from_pretrained("gpt2")
-
-        #   Freeze GPT-2 pre-trained parameters
-        for param in self.gpt2.parameters():
-            param.requires_grad = False
-
-        #   Add adapter to GPT-2
-        self.gpt2.add_adapter(adapter_name, config=adapter_config)
-        self.gpt2.set_active_adapters(adapter_name)
-
         #   CNN layer
         self.cnn = nn.Conv1d(
-            in_channels=self.gpt2.config.hidden_size * 2,
+            in_channels=gpt2_hidden_size * 2,
             out_channels=cnn_output_channels,
             kernel_size=cnn_window_size,
             padding=int(cnn_window_size / 2)
@@ -65,11 +53,11 @@ class SequenceEncoderBlock(nn.Module):
         self.max_pooling = nn.MaxPool1d(kernel_size=max_sequence_length)
 
         #   Batch normalization layers
-        self.word_embedding_bn = nn.BatchNorm1d(num_features=self.gpt2.config.hidden_size)
-        self.encoder_bn = nn.BatchNorm1d(num_features=self.gpt2.config.hidden_size)
+        self.word_embedding_bn = nn.BatchNorm1d(num_features=gpt2_hidden_size)
+        self.encoder_bn = nn.BatchNorm1d(num_features=gpt2_hidden_size)
         self.pooling_bn = nn.BatchNorm1d(cnn_output_channels)
 
-    def forward(self, input_ids, attention_mask):
+    def forward(self, outputs, attention_mask):
         '''Forward propagation
 
         params:
@@ -83,11 +71,6 @@ class SequenceEncoderBlock(nn.Module):
         #   C: number of output channels of the CNN (also the dimension of the sequence embedding)
 
         #   Get word embeddings and last hidden states from GPT-2
-        outputs = self.gpt2(
-            input_ids=input_ids,
-            attention_mask=attention_mask,
-            output_hidden_states=True
-        )
 
         word_embeddings = outputs.hidden_states[0]
         #   Dimension: (B, L, H)
@@ -145,7 +128,8 @@ class StanceClassifier(nn.Module):
             # parent_encoder: SequenceEncoderBlock,
             # child_encoder: SequenceEncoderBlock,
             # context_encoder: SequenceEncoderBlock,
-            sequence_encoder: SequenceEncoderBlock,
+            adapter_name,
+            adapter_config,
             loss_fn,
             sequence_embedding_size,
             ff_hidden_size,
@@ -153,10 +137,37 @@ class StanceClassifier(nn.Module):
         ):
         super(StanceClassifier, self).__init__()
 
-        # self.parent_encoder = parent_encoder
-        # self.child_encoder = child_encoder
-        # self.context_encoder = context_encoder
-        self.sequence_encoder = sequence_encoder
+        #   Pre-trained GPT-2 model
+        self.gpt2 = GPT2Model.from_pretrained("gpt2")
+
+        #   Freeze GPT-2 pre-trained parameters
+        for param in self.gpt2.parameters():
+            param.requires_grad = False
+
+        #   Add adapter to GPT-2
+        self.gpt2.add_adapter(adapter_name, config=adapter_config)
+        self.gpt2.set_active_adapters(adapter_name)
+
+
+        self.parent_encoder = SequenceEncoderBlock(
+            gpt2_hidden_size=self.gpt2.config.hidden_size,
+            max_sequence_length=MAX_SEQUENCE_LENGTH,
+            cnn_output_channels=SEQUENCE_EMEBDDING_SIZE,
+            cnn_window_size=CNN_WINDOW_SIZE
+        )
+        self.child_encoder = SequenceEncoderBlock(
+            gpt2_hidden_size=self.gpt2.config.hidden_size,
+            max_sequence_length=MAX_SEQUENCE_LENGTH,
+            cnn_output_channels=SEQUENCE_EMEBDDING_SIZE,
+            cnn_window_size=CNN_WINDOW_SIZE
+        )
+        self.context_encoder = SequenceEncoderBlock(
+            gpt2_hidden_size=self.gpt2.config.hidden_size,
+            max_sequence_length=MAX_SEQUENCE_LENGTH,
+            cnn_output_channels=SEQUENCE_EMEBDDING_SIZE,
+            cnn_window_size=CNN_WINDOW_SIZE
+        )
+        # self.sequence_encoder = sequence_encoder
         self.loss_fn = loss_fn
 
         #   Feed-forward layer
@@ -181,30 +192,30 @@ class StanceClassifier(nn.Module):
         #   S: dimension of the sequence embedding
         #   C: number of classes
 
-        # parent_embeddings = self.parent_encoder(
-        #     input_ids=input_ids[0],
-        #     attention_mask=attention_masks[0]
-        # )
-        # child_embeddings = self.child_encoder(
-        #     input_ids=input_ids[1],
-        #     attention_mask=attention_masks[1]
-        # )
-        # context_embeddings = self.context_encoder(
-        #     input_ids=input_ids[2],
-        #     attention_mask=attention_masks[2]
-        # )
-        parent_embeddings = self.sequence_encoder(
+        parent_outputs = self.gpt2(
             input_ids=input_ids[0],
-            attention_mask=attention_masks[0]
+            attention_mask=attention_masks[0],
+            output_hidden_states=True
         )
-        child_embeddings = self.sequence_encoder(
+
+        parent_embeddings = self.parent_encoder(parent_outputs, attention_mask = attention_masks[0])
+
+        child_outputs = self.gpt2(
             input_ids=input_ids[1],
-            attention_mask=attention_masks[1]
+            attention_mask=attention_masks[1],
+            output_hidden_states=True
         )
-        context_embeddings = self.sequence_encoder(
+
+        child_embeddings = self.child_encoder(child_outputs, attention_mask = attention_masks[1])
+
+        context_outputs = self.gpt2(
             input_ids=input_ids[2],
-            attention_mask=attention_masks[2]
+            attention_mask=attention_masks[2],
+            output_hidden_states=True
         )
+
+        context_embeddings = self.context_encoder(context_outputs, attention_mask = attention_masks[2])
+
         #   Dimension: 3 * (B, S)
 
         #   Create the combined sStanceClassifierloequence embedding for classification
@@ -267,7 +278,7 @@ if __name__ == '__main__':
 
     TRAINING_EPOCHS = 100
     BACTH_SIZE = 32
-    LEARNING_RATE = 1e-2
+    LEARNING_RATE = 1e-5
 
     # SeqEncoder1 = SequenceEncoderBlock(
     #     max_sequence_length=MAX_SEQUENCE_LENGTH,
@@ -293,13 +304,13 @@ if __name__ == '__main__':
     #     cnn_window_size=CNN_WINDOW_SIZE
     # )
 
-    SeqEncoder = SequenceEncoderBlock(
-        max_sequence_length=MAX_SEQUENCE_LENGTH,
-        adapter_name=ADAPTER_NAME,
-        adapter_config=ADAPTER_CONFIG,
-        cnn_output_channels=SEQUENCE_EMEBDDING_SIZE,
-        cnn_window_size=CNN_WINDOW_SIZE
-    )
+    # SeqEncoder = SequenceEncoderBlock(
+    #     max_sequence_length=MAX_SEQUENCE_LENGTH,
+    #     adapter_name=ADAPTER_NAME,
+    #     adapter_config=ADAPTER_CONFIG,
+    #     cnn_output_channels=SEQUENCE_EMEBDDING_SIZE,
+    #     cnn_window_size=CNN_WINDOW_SIZE
+    # )
 
     # CLSModel = StanceClassifier(
     #     parent_encoder=SeqEncoder1,
@@ -312,7 +323,8 @@ if __name__ == '__main__':
     # )
 
     CLSModel = StanceClassifier(
-        sequence_encoder=SeqEncoder,
+        adapter_name=ADAPTER_NAME,
+        adapter_config=ADAPTER_CONFIG,
         loss_fn=nn.CrossEntropyLoss(),
         sequence_embedding_size=SEQUENCE_EMEBDDING_SIZE,
         ff_hidden_size=FF_HIDDEN_SIZE,
@@ -321,7 +333,7 @@ if __name__ == '__main__':
     #   Optimizer and LR scheduler may need to be changed based on actual performance
     #   This is the default setting from the Trainer implementation
     optimizer = AdamW(CLSModel.parameters(), lr=LEARNING_RATE)
-    lr_scheduler = LambdaLR(optimizer, lambda epoch: 1 / (epoch + 1))
+    lr_scheduler = LambdaLR(optimizer, lambda epoch: 1 / (epoch / 1000 + 1))
 
     # add dataset
     train_dataset = DebaterDataset(DATASET_FILE, is_test=False)
@@ -332,7 +344,7 @@ if __name__ == '__main__':
     training_args = TrainingArguments(
         output_dir=RESULTS_DIR,
         logging_dir=LOG_DIR,
-        logging_steps=5000,
+        logging_steps=500,
         save_steps=5000,
         evaluation_strategy="steps",
         save_strategy="steps",
@@ -362,4 +374,3 @@ if __name__ == '__main__':
         train_h_output.write(json.dumps(log_history, indent=4))
     with open(os.path.join(LOG_DIR, f"train_result_{datetime.utcnow().strftime(time_format)}.txt"), 'w') as train_output:
         train_output.write(json.dumps(train_result, indent=4))
-
