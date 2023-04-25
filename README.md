@@ -13,7 +13,7 @@ python main.py
 1. To evaluate our model with the [checkpoint]{} run:
 
 ```{python}
-python main.py
+python eval.py
 ```
 
 
