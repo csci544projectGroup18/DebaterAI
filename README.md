@@ -7,13 +7,13 @@ Source code of CSCI 544 project.
 1. To train our model on the Disgreement dataset, run:
 
 ```{python}
-python main.py
+python main.py data/labeled_data.csv
 ```
 
 1. To evaluate our model with the [checkpoint]{} run:
 
 ```{python}
-python eval.py
+python main.py data/labeled_data.csv --eval
 ```
 
 

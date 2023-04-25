@@ -262,6 +262,9 @@ if __name__ == '__main__':
                         type=str)
     parser.add_argument("--eval", action='store_true',
                         help="run evaluation")
+    parser.add_argument("--ckpt",
+                    help="checkpoint path, needed for eval",
+                    type=str)
     args = parser.parse_args()
 
     # Config Env
@@ -269,9 +272,6 @@ if __name__ == '__main__':
     PRETRAINED_MODEL_DIR = os.path.join(PROJECT_ROOT_DIR, "models", "pretrained")
     DATASET_FILE = '/lab/xingrui/DebaterAI/data/labeled_data.csv'
     DATASET_FILE = args.DATASET_FILE
-
-
-    #assert os.path.isdir(PRETRAINED_MODEL_DIR)
 
     #   Path to the directory where the pre-trained model will be saved.
     os.environ["HUGGINGFACE_HUB_CACHE"] = PRETRAINED_MODEL_DIR
@@ -326,7 +326,6 @@ if __name__ == '__main__':
         evaluation_strategy="steps",
         save_strategy="steps",
         save_total_limit=5,
-        # metric_for_best_model = 'accuracy',
         metric_for_best_model = 'f1',
         load_best_model_at_end=True,
         num_train_epochs=TRAINING_EPOCHS,
