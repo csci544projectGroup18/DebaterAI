@@ -7,6 +7,7 @@ from copy import deepcopy
 from transformers import GPT2Model, GPT2Tokenizer
 from transformers import MAMConfig
 from transformers.modeling_outputs import SequenceClassifierOutput
+from transformers import EarlyStoppingCallback, IntervalStrategy
 
 from torch.utils.data.dataset import Dataset
 
@@ -37,7 +38,8 @@ class SequenceEncoderBlock(nn.Module):
             gpt2_hidden_size,
             max_sequence_length,
             cnn_output_channels,
-            cnn_window_size
+            cnn_window_size,
+            sequence_embedding_size
         ):
         super(SequenceEncoderBlock, self).__init__()
 
@@ -56,6 +58,7 @@ class SequenceEncoderBlock(nn.Module):
         self.word_embedding_bn = nn.BatchNorm1d(num_features=gpt2_hidden_size)
         self.encoder_bn = nn.BatchNorm1d(num_features=gpt2_hidden_size)
         self.pooling_bn = nn.BatchNorm1d(cnn_output_channels)
+        self.linear = nn.Linear(sequence_embedding_size, sequence_embedding_size)
 
     def forward(self, outputs, attention_mask):
         '''Forward propagation
@@ -153,19 +156,22 @@ class StanceClassifier(nn.Module):
             gpt2_hidden_size=self.gpt2.config.hidden_size,
             max_sequence_length=MAX_SEQUENCE_LENGTH,
             cnn_output_channels=SEQUENCE_EMEBDDING_SIZE,
-            cnn_window_size=CNN_WINDOW_SIZE
+            cnn_window_size=CNN_WINDOW_SIZE,
+            sequence_embedding_size = sequence_embedding_size
         )
         self.child_encoder = SequenceEncoderBlock(
             gpt2_hidden_size=self.gpt2.config.hidden_size,
             max_sequence_length=MAX_SEQUENCE_LENGTH,
             cnn_output_channels=SEQUENCE_EMEBDDING_SIZE,
-            cnn_window_size=CNN_WINDOW_SIZE
+            cnn_window_size=CNN_WINDOW_SIZE,
+            sequence_embedding_size = sequence_embedding_size
         )
         self.context_encoder = SequenceEncoderBlock(
             gpt2_hidden_size=self.gpt2.config.hidden_size,
             max_sequence_length=MAX_SEQUENCE_LENGTH,
             cnn_output_channels=SEQUENCE_EMEBDDING_SIZE,
-            cnn_window_size=CNN_WINDOW_SIZE
+            cnn_window_size=CNN_WINDOW_SIZE,
+            sequence_embedding_size = sequence_embedding_size
         )
         # self.sequence_encoder = sequence_encoder
         self.loss_fn = loss_fn
@@ -280,48 +286,6 @@ if __name__ == '__main__':
     BACTH_SIZE = 32
     LEARNING_RATE = 1e-5
 
-    # SeqEncoder1 = SequenceEncoderBlock(
-    #     max_sequence_length=MAX_SEQUENCE_LENGTH,
-    #     adapter_name=ADAPTER_NAME,
-    #     adapter_config=ADAPTER_CONFIG,
-    #     cnn_output_channels=SEQUENCE_EMEBDDING_SIZE,
-    #     cnn_window_size=CNN_WINDOW_SIZE
-    # )
-
-    # SeqEncoder2 = SequenceEncoderBlock(
-    #     max_sequence_length=MAX_SEQUENCE_LENGTH,
-    #     adapter_name=ADAPTER_NAME,
-    #     adapter_config=ADAPTER_CONFIG,
-    #     cnn_output_channels=SEQUENCE_EMEBDDING_SIZE,
-    #     cnn_window_size=CNN_WINDOW_SIZE
-    # )
-
-    # SeqEncoder3 = SequenceEncoderBlock(
-    #     max_sequence_length=MAX_SEQUENCE_LENGTH,
-    #     adapter_name=ADAPTER_NAME,
-    #     adapter_config=ADAPTER_CONFIG,
-    #     cnn_output_channels=SEQUENCE_EMEBDDING_SIZE,
-    #     cnn_window_size=CNN_WINDOW_SIZE
-    # )
-
-    # SeqEncoder = SequenceEncoderBlock(
-    #     max_sequence_length=MAX_SEQUENCE_LENGTH,
-    #     adapter_name=ADAPTER_NAME,
-    #     adapter_config=ADAPTER_CONFIG,
-    #     cnn_output_channels=SEQUENCE_EMEBDDING_SIZE,
-    #     cnn_window_size=CNN_WINDOW_SIZE
-    # )
-
-    # CLSModel = StanceClassifier(
-    #     parent_encoder=SeqEncoder1,
-    #     child_encoder=SeqEncoder2,
-    #     context_encoder=SeqEncoder3,
-    #     loss_fn=nn.CrossEntropyLoss(),
-    #     sequence_embedding_size=SEQUENCE_EMEBDDING_SIZE,
-    #     ff_hidden_size=FF_HIDDEN_SIZE,
-    #     num_classes=NUM_CLASSES
-    # )
-
     CLSModel = StanceClassifier(
         adapter_name=ADAPTER_NAME,
         adapter_config=ADAPTER_CONFIG,
@@ -333,7 +297,7 @@ if __name__ == '__main__':
     #   Optimizer and LR scheduler may need to be changed based on actual performance
     #   This is the default setting from the Trainer implementation
     optimizer = AdamW(CLSModel.parameters(), lr=LEARNING_RATE)
-    lr_scheduler = LambdaLR(optimizer, lambda epoch: 1 / (epoch / 1000 + 1))
+    lr_scheduler = LambdaLR(optimizer, lambda epoch: 1 / (epoch / 5000 + 1))
 
     # add dataset
     train_dataset = DebaterDataset(DATASET_FILE, is_test=False)
@@ -345,16 +309,21 @@ if __name__ == '__main__':
         output_dir=RESULTS_DIR,
         logging_dir=LOG_DIR,
         logging_steps=500,
-        save_steps=5000,
+        save_steps=1000,
         evaluation_strategy="steps",
         save_strategy="steps",
-        metric_for_best_model = 'accuracy',
+        save_total_limit=5,
+        # metric_for_best_model = 'accuracy',
+        metric_for_best_model = 'f1',
+        load_best_model_at_end=True,
         num_train_epochs=TRAINING_EPOCHS,
         per_device_train_batch_size=BACTH_SIZE,
         per_device_eval_batch_size=BACTH_SIZE,
         remove_unused_columns=False
     )
 
+    ckpt = torch.load('/lab/xingrui/DebaterAI/results/model_best/pytorch_model.bin')
+    CLSModel.load_state_dict(ckpt)
     trainer = Trainer(
         model=CLSModel,
         args=training_args,
@@ -362,15 +331,19 @@ if __name__ == '__main__':
         eval_dataset=eval_dataset,      #   Change this to the evaluation dataset
         data_collator=MyCollator,
         optimizers=(optimizer, lr_scheduler),
-        compute_metrics=custom_compute_metrics
+        compute_metrics=custom_compute_metrics,
+        callbacks = [EarlyStoppingCallback(early_stopping_patience=10)]
     )
-    # trainer.add_callback(CustomCallback(trainer))
 
-    train_result = trainer.train()
+    # train_result = trainer.train()
+    # trainer.save_model(f'{RESULTS_DIR}/model_best/')
 
-    log_history = trainer.state.log_history
-    time_format = time_format = "%Y-%m-%dT%H_%M_%S"
-    with open(os.path.join(LOG_DIR, f"train_history_{datetime.utcnow().strftime(time_format)}.txt"), 'w') as train_h_output:
-        train_h_output.write(json.dumps(log_history, indent=4))
-    with open(os.path.join(LOG_DIR, f"train_result_{datetime.utcnow().strftime(time_format)}.txt"), 'w') as train_output:
-        train_output.write(json.dumps(train_result, indent=4))
+    # log_history = trainer.state.log_history
+    # time_format = time_format = "%Y-%m-%dT%H_%M_%S"
+    # with open(os.path.join(LOG_DIR, f"train_history_{datetime.utcnow().strftime(time_format)}.txt"), 'w') as train_h_output:
+    #     train_h_output.write(json.dumps(log_history, indent=4))
+    # with open(os.path.join(LOG_DIR, f"train_result_{datetime.utcnow().strftime(time_format)}.txt"), 'w') as train_output:
+    #     train_output.write(json.dumps(train_result, indent=4))
+
+    evaluation = trainer.evaluate()
+    print(evaluation)

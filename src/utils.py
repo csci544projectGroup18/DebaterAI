@@ -87,15 +87,21 @@ def custom_compute_metrics(eval_pred: EvalPrediction) -> dict:
     precision, recall, f1, _ = precision_recall_fscore_support(
         eval_pred.label_ids, preds, average="weighted"
     )
-
+    precision_list, recall_list, f1_list, support_list = precision_recall_fscore_support(
+        eval_pred.label_ids, preds, average=None
+    )
     #   Compute confusion matrix
     # cm = confusion_matrix(eval_pred.label_ids[:min_len], preds[:min_len])
     cm = confusion_matrix(eval_pred.label_ids, preds)
 
     return {
         "precision": precision,
+        "precision_list": precision_list.tolist(),
         "recall": recall,
+        "recall_list": recall_list.tolist(),
         "f1": f1,
+        "f1_list": f1_list.tolist(),
+        "support_list": support_list.tolist(),
         "sub_accuracy": (cm.diagonal() / cm.sum(axis=1)).tolist(),
         "accuracy": cm.diagonal().sum() / cm.sum()
     }
