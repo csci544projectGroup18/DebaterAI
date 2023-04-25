@@ -1,4 +1,5 @@
 import os
+import argparse
 import pandas as pd
 import torch
 import torch.nn as nn
@@ -254,10 +255,22 @@ class CustomCallback(TrainerCallback):
             return control_copy
 
 if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("DATASET_FILE", required=True, default = 'data/labeled_data.csv',
+                        help="The path of csv data", 
+                        type=str)
+    parser.add_argument("--eval", action='store_true',
+                        help="run evaluation")
+    args = parser.parse_args()
+
     # Config Env
     PROJECT_ROOT_DIR = os.getcwd()
     PRETRAINED_MODEL_DIR = os.path.join(PROJECT_ROOT_DIR, "models", "pretrained")
     DATASET_FILE = '/lab/xingrui/DebaterAI/data/labeled_data.csv'
+    DATASET_FILE = args.DATASET_FILE
+
+
     #assert os.path.isdir(PRETRAINED_MODEL_DIR)
 
     #   Path to the directory where the pre-trained model will be saved.
@@ -335,15 +348,17 @@ if __name__ == '__main__':
         callbacks = [EarlyStoppingCallback(early_stopping_patience=10)]
     )
 
-    # train_result = trainer.train()
-    # trainer.save_model(f'{RESULTS_DIR}/model_best/')
+    if args.eval:
+        evaluation = trainer.evaluate()
+        print(evaluation)
+    else:
+        train_result = trainer.train()
+        trainer.save_model(f'{RESULTS_DIR}/model_best/')
 
-    # log_history = trainer.state.log_history
-    # time_format = time_format = "%Y-%m-%dT%H_%M_%S"
-    # with open(os.path.join(LOG_DIR, f"train_history_{datetime.utcnow().strftime(time_format)}.txt"), 'w') as train_h_output:
-    #     train_h_output.write(json.dumps(log_history, indent=4))
-    # with open(os.path.join(LOG_DIR, f"train_result_{datetime.utcnow().strftime(time_format)}.txt"), 'w') as train_output:
-    #     train_output.write(json.dumps(train_result, indent=4))
+        log_history = trainer.state.log_history
+        time_format = time_format = "%Y-%m-%dT%H_%M_%S"
+        with open(os.path.join(LOG_DIR, f"train_history_{datetime.utcnow().strftime(time_format)}.txt"), 'w') as train_h_output:
+            train_h_output.write(json.dumps(log_history, indent=4))
+        with open(os.path.join(LOG_DIR, f"train_result_{datetime.utcnow().strftime(time_format)}.txt"), 'w') as train_output:
+            train_output.write(json.dumps(train_result, indent=4))
 
-    evaluation = trainer.evaluate()
-    print(evaluation)
