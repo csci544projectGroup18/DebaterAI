@@ -10,7 +10,7 @@ Source code of CSCI 544 project.
 python main.py data/labeled_data.csv
 ```
 
-1. To evaluate our model with the [checkpoint]{} run:
+1. To evaluate our model with the [checkpoint]() run:
 
 ```{python}
 python main.py data/labeled_data.csv --eval
