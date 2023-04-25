@@ -1,4 +1,22 @@
-# DebaterAI
+# DebaterAI: Stance Detection for Online Debates
+
+Source code of CSCI 544 project.
+
+# How to run
+
+1. To train our model on the Disgreement dataset, run:
+
+```{python}
+python main.py
+```
+
+1. To evaluate our model with the [checkpoint]{} run:
+
+```{python}
+python main.py
+```
+
+
 
 # Structure
 
