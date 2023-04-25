@@ -34,7 +34,7 @@ class DebaterDataset(Dataset):
           - parent_comment: string
           - child_comment: string
           - context: string
-          - label: int (0: Neutral, 1: Agree, 2: Disagree)
+          - label: int (0: Disagree, 1: Neutral, 2:Agree)
         '''
         label = self.label_list[index]
         parent_comment = self.body_parent_list[index]
