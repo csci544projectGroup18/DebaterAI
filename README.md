@@ -2,6 +2,10 @@
 
 Source code of CSCI 544 project.
 
+# Dataset
+
+Our dataset can be downloaded [here](https://scale.com/open-av-datasets/oxford). There is a csv file `labeled_data.csv`, which is used to train / evaluate our model. 
+
 # How to run
 
 1. To train our model on the Disgreement dataset, run:
