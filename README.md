@@ -19,3 +19,7 @@ python main.py data/labeled_data.csv
 python main.py data/labeled_data.csv --eval --ckpt 'model_best.bin'
 
 ```
+
+# Environment
+
+Our code is build on `python=3.9` and `pytorch=1.13.1`, with CUDA 11.6. Model is trained with `transformers=4.27.1`.
