@@ -257,7 +257,7 @@ class CustomCallback(TrainerCallback):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("DATASET_FILE", required=True, default = 'data/labeled_data.csv',
+    parser.add_argument("DATASET_FILE",
                         help="The path of csv data", 
                         type=str)
     parser.add_argument("--eval", action='store_true',
@@ -270,7 +270,7 @@ if __name__ == '__main__':
     # Config Env
     PROJECT_ROOT_DIR = os.getcwd()
     PRETRAINED_MODEL_DIR = os.path.join(PROJECT_ROOT_DIR, "models", "pretrained")
-    DATASET_FILE = '/lab/xingrui/DebaterAI/data/labeled_data.csv'
+    # DATASET_FILE = '/lab/xingrui/DebaterAI/data/labeled_data.csv'
     DATASET_FILE = args.DATASET_FILE
 
     #   Path to the directory where the pre-trained model will be saved.
@@ -334,8 +334,10 @@ if __name__ == '__main__':
         remove_unused_columns=False
     )
 
-    ckpt = torch.load('/lab/xingrui/DebaterAI/results/model_best/pytorch_model.bin')
-    CLSModel.load_state_dict(ckpt)
+    if args.ckpt:
+        ckpt = torch.load(args.ckpt)
+        CLSModel.load_state_dict(ckpt)
+
     trainer = Trainer(
         model=CLSModel,
         args=training_args,
